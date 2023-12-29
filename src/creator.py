@@ -8,22 +8,33 @@ from sqlalchemy.orm import DeclarativeBase, MappedAsDataclass, Session
 
 from db.objects import Base, Channel, Video, WatchHistory
 
-def debug_dump_data(session):
-    print("dumping...")
-    results = session.query(Video).all()
-    for r in results:
-        print(r)
-    
-    results = session.query(WatchHistory).all()
-    for r in results:
-        print(r)
+count_deleted_videos = 0
+count_music_listens = 0
 
-    results = session.query(Channel).all()
-    for r in results:
-        print(r)
+
+def debug_dump_data(session):
+    # print("dumping...")
+    # results = session.query(Video).all()
+    # for r in results:
+    #     print(r)
+
+    # results = session.query(WatchHistory).all()
+    # for r in results:
+    #     print(r)
+
+    # results = session.query(Channel).all()
+    # for r in results:
+    #     print(r)
+
+    print(f"Videos: {session.query(Video).count()
+                     } (Deleted: {count_deleted_videos})")
+    print(f"Channels: {session.query(Channel).count()}")
+    print(f"WatchHistorys: {session.query(WatchHistory).count()}")
+    print(f"Music plays: {count_music_listens}")
+
 
 # the Engine is a factory that can create new database connections for us
-engine = create_engine("sqlite:///:memory:") #, echo=True)
+engine = create_engine("sqlite:///:memory:")  # , echo=True)
 
 # generate DB schema at once in our target SQLite database
 Base.metadata.create_all(bind=engine)
@@ -41,38 +52,44 @@ with open(input_path_json, 'r', encoding='utf-8') as file:
 
         entries_written = 0
 
+        # write the data for each watch and video to the database
         for history_entry in history_data:
 
-            # write each video and its associated data to the DB
+            if "subtitles" not in history_entry:
+                # the video has been deleted
+                count_deleted_videos += 1
+                continue
+
+            if history_entry["header"] == "YouTube Music":
+                # this is a YouTube Music listen
+                count_music_listens += 1
+                continue
+
             video_id = history_entry["titleUrl"].split('=')[-1]
             video_title = history_entry["title"].replace("Watched ", "")
 
             subtitles = history_entry["subtitles"][0]
-            channel_id = history_entry["subtitles"][0]["url"].split('/')[-1]     
+
+            channel_id = history_entry["subtitles"][0]["url"].split('/')[-1]
             channel_name = history_entry["subtitles"][0]["name"]
 
-            watch_time = datetime.strptime(
-                history_entry["time"], '%Y-%m-%dT%H:%M:%S.%fZ')
+            watch_time = datetime.fromisoformat(history_entry["time"])
 
             watch_history = WatchHistory(watch_time, video_id)
-            video = Video(video_id, video_title, channel_id, [watch_history])
-            channel = Channel(channel_id, channel_name, [video])
+            video = Video(video_id, video_title, channel_id)
+            channel = Channel(channel_id, channel_name)
 
-            print("\n\n")
-            print(watch_history)
-            print(video)
-            print(channel)
-            
+            session.merge(watch_history)
+            session.merge(video)
             session.merge(channel)
 
-            session.commit()
-
-            # TODO - remove debug test
             entries_written += 1
-            if entries_written > 100:
-                break
+
+            if entries_written % 1000 == 0:
+                session.commit()
+                print(f"committed {entries_written}")
+
+        session.commit()
 
         # output data written
         debug_dump_data(session)
-        
-
