@@ -9,7 +9,7 @@ from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import DeclarativeBase, MappedAsDataclass, Session
 
-from db.constants import *
+from src.db.constants import *
 
 
 class Base(DeclarativeBase, MappedAsDataclass):
