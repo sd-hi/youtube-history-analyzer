@@ -1,47 +1,32 @@
-import calendar
-import matplotlib.pyplot as plt
+import altair as alt
+import streamlit as st
 
-from sqlalchemy.orm import Session
-from sqlalchemy import func
-
-from src.imports.jsonimport import import_watch_history_json
-from src.db.objects import Channel, WatchHistory
 from src.db.create import get_database_engine
+from src.db.queries import get_watchhistory_count_per_channel, get_watchhistory_count_per_month, get_watchhistory_count_per_weekday, get_watchhistory_timestamp_range
+
+st.write("""
+# YouTube History Analyzer
+         
+Analysis of YouTube watch history
+""")
 
 # set up database
 db_engine = get_database_engine()
 
-# import watch history
-# import_watch_history_json("input/watch-history.json", db_engine)
+df = get_watchhistory_count_per_month(db_engine)
+st.subheader("Watches by month")
+st.line_chart(df.set_index('year_month'))
 
-with Session(db_engine) as session:
+df = get_watchhistory_count_per_weekday(db_engine)
+st.subheader("Watches by day of week")
+st.altair_chart(alt.Chart(df).mark_bar().encode(
+    x=alt.X('weekday', sort=None, title="Day of week"),
+    y=alt.Y('watch_count', title="Watch Count"),
+), use_container_width=True)
 
-    for year in range(2023, 2020, -1):
-
-        months = ()
-        counts = ()
-
-        for month in range(1, 13):
-
-            query = (
-                session.query(func.count())
-                .filter(func.extract('year', WatchHistory.timestamp) == year)
-                .filter(func.extract('month', WatchHistory.timestamp) == month)
-            )
-            watch_count = query.scalar()
-
-            print(f"{year}-{month}: {watch_count}")
-
-            months += (calendar.month_abbr[month],)
-            counts += (watch_count,)
-
-        plt.plot(months, counts, label=f"{year}")
-    
-plt.xlabel('Month')
-plt.xticks(rotation=90)
-plt.ylabel('Count')
-plt.title('Watches per month')
-
-plt.legend()
-
-plt.show()
+df = get_watchhistory_count_per_channel(db_engine)
+st.subheader("Watches by channel")
+st.altair_chart(alt.Chart(df).mark_bar().encode(
+    x=alt.X('channel_name', sort=None, title="Channel Name"),
+    y=alt.Y('watch_count', title="Watch Count"),
+), use_container_width=True)

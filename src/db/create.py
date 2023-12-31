@@ -1,11 +1,7 @@
 # create database
 
-from datetime import datetime
-
 from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, MappedAsDataclass, Session
-
-from src.db.objects import Base, Channel, Video, WatchHistory
+from src.db.objects import Base
 
 
 def get_database_engine():
