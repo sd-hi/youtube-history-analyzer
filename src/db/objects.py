@@ -1,12 +1,8 @@
 # database objects
 
-from datetime import datetime
-from typing import List
-
 from sqlalchemy import DateTime, ForeignKey, String, Integer, CHAR
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
-from sqlalchemy.orm import relationship
 from sqlalchemy.orm import DeclarativeBase, MappedAsDataclass, Session
 
 from src.db.constants import *
@@ -37,6 +33,20 @@ class Video(Base):
 
     def __repr__(self) -> str:
         return f"id={self.id!r}, title={self.title!r}"
+
+
+class VideoMeta(Base):
+    __tablename__ = "videometas"
+
+    id: Mapped[str] = mapped_column(CHAR(YT_VIDEOID_LEN), primary_key=True)
+
+    commentcount: Mapped[Integer] = mapped_column(Integer)
+    duration: Mapped[Integer] = mapped_column(Integer) # duration in seconds
+    likecount: Mapped[Integer] = mapped_column(Integer)
+    viewcount: Mapped[Integer] = mapped_column(Integer)
+
+    def __repr__(self) -> str:
+        return f"id={self.id!r}, viewcount={self.viewcount!r}"
 
 
 class WatchHistory(Base):

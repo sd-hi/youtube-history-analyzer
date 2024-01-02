@@ -2,6 +2,8 @@
 *.html
 *.json
 *.csv
+/data
+/data-journal
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
