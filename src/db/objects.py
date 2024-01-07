@@ -1,6 +1,6 @@
 # database objects
 
-from sqlalchemy import DateTime, ForeignKey, String, Integer, CHAR
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Integer, CHAR
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import DeclarativeBase, MappedAsDataclass, Session
@@ -40,13 +40,18 @@ class VideoMeta(Base):
 
     id: Mapped[str] = mapped_column(CHAR(YT_VIDEOID_LEN), primary_key=True)
 
+    # caching columns
+    videoexists: Mapped[Boolean] = mapped_column(Boolean) # video exists
+    cachedate: Mapped[DateTime] = mapped_column(DateTime) # time this video was cached into DB
+
+    # data columns
     commentcount: Mapped[Integer] = mapped_column(Integer)
     duration: Mapped[Integer] = mapped_column(Integer) # duration in seconds
     likecount: Mapped[Integer] = mapped_column(Integer)
     viewcount: Mapped[Integer] = mapped_column(Integer)
 
     def __repr__(self) -> str:
-        return f"id={self.id!r}, viewcount={self.viewcount!r}"
+        return f"id={self.id!r}, viewcount={self.viewcount!r}, duration={self.duration!r}"
 
 
 class WatchHistory(Base):

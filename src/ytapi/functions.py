@@ -4,10 +4,15 @@ import json
 import os
 import requests
 
+from datetime import datetime
 from dotenv import load_dotenv
+from isodate import parse_duration
+from typing import List
 
-YT_API_BASE_URL = 'https://www.googleapis.com/youtube/v3'
+from src.db.objects import VideoMeta
 
+YT_API_BASE_URL = 'https://www.googleapis.com/youtube/v3' # URL for YouTube API
+YT_API_MAX_VIDEOS = 50 # maximum video IDs to request in single call
 
 def ytapi_apitoken():
     """
@@ -15,14 +20,14 @@ def ytapi_apitoken():
     """
     load_dotenv()
     api_key = os.getenv("GOOGLE_API_KEY")
-    print(f"API key: {api_key}")
     return api_key
 
 
-def ytapi_get_videos(video_ids):
+def ytapi_get_videos(video_ids) -> List[VideoMeta]:
     """
     Get data for given set of video IDs
     """
+    videometas = []
 
     url = YT_API_BASE_URL + '/videos'
     headers = {
@@ -34,14 +39,34 @@ def ytapi_get_videos(video_ids):
         'id': {",".join(video_ids)}
     }
 
+    print(f"Getting {len(video_ids)} videos: {",".join(video_ids)}")
+
     response = requests.get(url, params=parameters, headers=headers)
 
     if response.status_code == 200:
         response_json = response.json()
 
         for item in response_json.get("items", []):
-            print(item.get("etag"))
+
+            videometa = VideoMeta(
+
+                # caching info
+                cachedate=datetime.utcnow(),
+                videoexists=True,
+
+                # metadata
+                id=item["id"],
+                commentcount=int(item["statistics"]["commentCount"]),
+                duration=parse_duration(
+                    item["contentDetails"]["duration"]).total_seconds(),
+                likecount=int(item["statistics"]["likeCount"]),
+                viewcount=int(item["statistics"]["viewCount"]),
+            )
+
+            videometas.append(videometa)
 
     else:
         print(f"Error: {response.status_code}")
         print(response.text)
+
+    return videometas

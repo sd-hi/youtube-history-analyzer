@@ -162,7 +162,7 @@ def get_watchhistory_count_per_dayhour(db_engine: Engine) -> pd.DataFrame:
         return df
 
 
-def get_watchhistory_for_month(db_engine: Engine, year, month, distinct_video_ids = True) -> List[WatchHistory]:
+def get_watchhistory_for_month(db_engine: Engine, year, month, distinct_video_ids = False) -> List[WatchHistory]:
     """
     Get video IDs watched in given month
     """
@@ -178,7 +178,7 @@ def get_watchhistory_for_month(db_engine: Engine, year, month, distinct_video_id
         # only return each video ID once
         if distinct_video_ids:
             query.distinct(WatchHistory.videoid)
-        
+
         result = query.all()
     
     return result
