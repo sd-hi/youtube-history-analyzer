@@ -9,5 +9,4 @@ db_engine = get_database_engine()
 # test code
 watch_historys = get_watchhistory_for_month(db_engine, 2023, 12)
 video_ids = [video.videoid for video in watch_historys]
-print(video_ids[0:19])
-cache_videometas(db_engine, video_ids[0:10], 3)
+cache_videometas(db_engine, video_ids)

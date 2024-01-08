@@ -12,21 +12,22 @@ def cache_videometas(db_engine, videoids, max_chunk_size=YT_API_MAX_VIDEOS):
     Cache video metadata not already present in database
     """
 
-    print(f"Video IDs requested to cache: {",".join(videoids)}")
+    print(f"Video IDs requested to cache: {
+          len(videoids)} ({len(set(videoids))} unique)")
 
     with Session(db_engine) as session:
 
         # check which videos exist in the database already
-        videoids_existing = session.query(VideoMeta.id).filter(
+        result = session.query(VideoMeta.id).filter(
             VideoMeta.id.in_(videoids)).all()
+        videoids_existing = [tup[0] for tup in result]
 
         # determine which video IDs we need to cache into the database
         videoids_to_cache = list(
             set(videoids).difference(videoids_existing))
-    
-    print(f"Videos in cache already: {",".join(videoids_existing)}")
-    print(f"Videos to to be cached: {",".join(videoids_to_cache)}")
-    print(f"\n")
+
+    print(f"Videos in cache already: {len(videoids_existing)}")
+    print(f"Videos to to be cached: {len(videoids_to_cache)}")
 
     # work through the list of requested videos in chunks
     videometas_from_api = []
@@ -48,17 +49,18 @@ def cache_videometas(db_engine, videoids, max_chunk_size=YT_API_MAX_VIDEOS):
 
         if call_api_now:
             # get the chunk of videos from the API
+            print(f"Requesting {current_chunk_size} videos from API")
+
             api_call_videometas = ytapi_get_videos(
                 videoids_to_cache[elem_start:elem_end])
-            
-            print(f"Requesting {current_chunk_size} videos from API: {",".join(videoids_to_cache[elem_start:elem_end])}")
-            print(f"Received {len(api_call_videometas)} videos from API: {",".join([videometa.id for videometa in api_call_videometas])}")
+
+            print(f"Received {len(api_call_videometas)} videos from API")
 
             # add them to the collection of videos downloaded from the API in this instance
             videometas_from_api.extend(api_call_videometas)
 
             # move start pointer for next API call
-            elem_start = elem_end + 1
+            elem_start = elem_end
 
         # move to next video ID
         elem_end += 1
@@ -68,8 +70,6 @@ def cache_videometas(db_engine, videoids, max_chunk_size=YT_API_MAX_VIDEOS):
 
         # flush the videos obtained from the API to database
         for videometa in videometas_from_api:
-            print(videometas_from_api)
-            print(videometa)
             session.merge(videometa)
         session.commit()
 
@@ -79,9 +79,9 @@ def cache_videometas(db_engine, videoids, max_chunk_size=YT_API_MAX_VIDEOS):
         # identify which of those the API never returned
         videoids_missing = set(
             videoids_to_cache).difference(videoids_from_api)
-        
-        print(f"Videos that were provided by API ({len(videoids_from_api)}): {",".join(videoids_from_api)}")
-        print(f"Videos that were missing from API responses ({len(videoids_missing)}): {",".join(videoids_missing)}")
+
+        print(f"Videos provided by API: {len(videoids_from_api)}")
+        print(f"Videos missing from API: {len(videoids_missing)}")
 
         print("BREAKING OUT before writing to DB")
         exit()

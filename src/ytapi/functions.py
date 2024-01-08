@@ -11,8 +11,31 @@ from typing import List
 
 from src.db.objects import VideoMeta
 
-YT_API_BASE_URL = 'https://www.googleapis.com/youtube/v3' # URL for YouTube API
-YT_API_MAX_VIDEOS = 50 # maximum video IDs to request in single call
+YT_API_BASE_URL = 'https://www.googleapis.com/youtube/v3'  # URL for YouTube API
+YT_API_MAX_VIDEOS = 50  # maximum video IDs to request in single call
+
+
+def extract_json_tag_value(data, *keys, default="0"):
+    # try extracting JSON value based on path of keys
+    try:
+        for key in keys:
+            data = data[key]
+        return data
+    except (KeyError, TypeError):
+        # failed to find key, return default value
+        print(f"returning {default}")
+        return default
+
+
+def iso_duration_to_seconds(duration_string):
+    # try to convert given ISO duration to seconds
+    try:
+        duration_seconds = parse_duration(duration_string).total_seconds()
+    except:
+        duration_seconds = 0
+
+    return duration_seconds
+
 
 def ytapi_apitoken():
     """
@@ -56,11 +79,14 @@ def ytapi_get_videos(video_ids) -> List[VideoMeta]:
 
                 # metadata
                 id=item["id"],
-                commentcount=int(item["statistics"]["commentCount"]),
-                duration=parse_duration(
-                    item["contentDetails"]["duration"]).total_seconds(),
-                likecount=int(item["statistics"]["likeCount"]),
-                viewcount=int(item["statistics"]["viewCount"]),
+                commentcount=int(extract_json_tag_value(
+                    item, "statistics", "commentCount")),
+                duration=iso_duration_to_seconds(extract_json_tag_value(
+                    item, "contentDetails", "duration")),
+                likecount=int(extract_json_tag_value(
+                    item, "statistics", "likeCount")),
+                viewcount=int(extract_json_tag_value(
+                    item, "statistics", "viewCount")),
             )
 
             videometas.append(videometa)
